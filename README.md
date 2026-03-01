@@ -9,7 +9,6 @@ Dieses Projekt optimiert mein Heiz- und Kühlverhalten mit Home Assistant auf ei
 * **Energie:** * PV-Anlage: 7,2 kWp (Süd, 180°, 40° Dachneigung)
     * Wechselrichter: Fronius Symo GEN 6.0 Plus
     * Speicher: BYD Battery-Box Premium HV 5,4 kWh
-    * Nordseite: 3x BKW (verschiedene Module/WR)
 * **Sonstiges:** MyPV AC ELWA 2 Heizstab
 
 ## Die Automatisierungen
