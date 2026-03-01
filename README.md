@@ -42,7 +42,7 @@ Prüft bei Neustart von HA (oder periodisch), ob die Temperatur zu niedrig oder 
 
 ### 4. Heizung – Temperatur Steuerung
 
-Wenn in einem Raum die Temperatur für 5 Minuten unter 20,5°C fällt, wird die Klima aktiviert. Bei einer Durchschnittstemperatur über 22,5°C wird die Heizung deaktiviert.
+Wenn in einem Raum die Temperatur für 5 Minuten unter 20,5°C fällt, wird die Heizung eingeschaltet. Bei einer Durchschnittstemperatur über 22,5°C wird die Heizung deaktiviert.
 
 ## Dashboard Ansicht
 
