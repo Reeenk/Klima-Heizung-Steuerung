@@ -55,12 +55,16 @@ Prüft alle 5 Minuten, ob die Werte für den Betrieb erfüllt sind:
 
 ### 4. Heizung – Temperatur Steuerung
 
+
       * Die verschiedene Räume werden nach Ihrer Temperatur Abgefragt
         Wenn in einem Raum die Temperatur für 5 Minuten unter 20,5°C fällt, wird die Heizung eingeschalten.
       * Für das Ausschalten der Heizung hab ich alle Temperaturen Zusammen gefasst und rechnen mir die Durschnittstemperatur
         Wenn dies über 22,5°C geht, wird die Heizung deaktiviert.
 
 ## 5. Berechnung für den Speicher für SOC Wert, die Brechnung geht von den Letzten 3 Tagen aus, mit 10% Sicherheit
+
+Wenn in einem Raum die Temperatur für 5 Minuten unter 20,5°C fällt, wird die Heizung eingeschaltet. Bei einer Durchschnittstemperatur über 22,5°C wird die Heizung deaktiviert.
+
 
 ## Dashboard Ansicht
 
