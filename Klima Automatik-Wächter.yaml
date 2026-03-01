@@ -1,0 +1,60 @@
+alias: "Klima: Automatik-Wächter"
+description: >-
+  Deaktiviert die Automation bei Erreichen des Limits nachts und schaltet
+  morgens bei guter Prognose ein
+triggers:
+  - trigger: sun
+    event: sunrise
+    offset: "-01:00:00"
+    id: morgens_check
+  - trigger: template
+    id: akku_check_smart
+    value_template: >-
+      {% set limit_empfohlen = states('sensor.empfohlener_batterie_soc_limit') |
+      float(0) %} {% set limit_manuell =
+      states('input_number.klima_akku_entnehmen') | float(0) %} {# Synchron mit
+      V19: Minimum aus beiden, aber mindestens 35% #} {% set aus_soc =
+      [([limit_empfohlen, limit_manuell] | min), 35] | max %} {{
+      states('sensor.byd_battery_box_premium_hv_ladezustand') | float(0) <=
+      aus_soc }}
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: morgens_check
+        sequence:
+          - if:
+              - condition: template
+                alias: Prognose ist höher als mein Soll-Wert
+                value_template: >
+                  {{ states('sensor.solcast_pv_forecast_prognose_heute') |
+                  float(0) >= 
+                     states('input_number.pv_produktion_soll_tag') | float(0) }}
+            then:
+              - action: input_boolean.turn_on
+                target:
+                  entity_id: input_boolean.klima_automation
+            else:
+              - action: input_boolean.turn_off
+                target:
+                  entity_id: input_boolean.klima_automation
+      - conditions:
+          - condition: trigger
+            id: akku_check_smart
+          - condition: state
+            entity_id: input_boolean.klima_automation
+            state: "on"
+          - condition: sun
+            after: sunset
+        sequence:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.klima_automation
+          - action: notify.mobile_app_sven_iphone_15
+            data:
+              title: Klima-Wächter NEA
+              message: >-
+                Limit erreicht! Akku bei {{
+                states('sensor.byd_battery_box_premium_hv_ladezustand') }}%. 
+                Nacht-Reserve gesichert. Automation gestoppt.
+mode: parallel

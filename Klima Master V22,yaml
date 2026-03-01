@@ -1,0 +1,112 @@
+alias: Klima Master V22
+description: Vollautomatisch mit 60s Wolken-Schutz & Gatekeeper
+triggers:
+  - trigger: time_pattern
+    minutes: /5
+  - trigger: state
+    entity_id: sensor.byd_battery_box_premium_hv_ladezustand
+  - trigger: state
+    entity_id: input_boolean.klima_automation
+    to: "off"
+    id: hauptschalter
+actions:
+  - variables:
+      akt_soc: "{{ states('sensor.byd_battery_box_premium_hv_ladezustand') | float(0) }}"
+      aussen_temp: "{{ states('sensor.openweathermap_temperature') | float(15) }}"
+      uberschuss: "{{ states('sensor.strom_ins_netz_watt_mit_heizstab') | float(0) }}"
+      aus_soc: >-
+        {% set berechnet = states('sensor.empfohlener_batterie_soc_limit') |
+        float(100) %} {% set manuell =
+        states('input_number.klima_akku_entnehmen') | float(95) %} {{
+        [berechnet, manuell, 30] | max }}
+      start_soc: "{% set monat = now().month %} {{ 60 if 3 <= monat <= 10 else 80 }}"
+      target_mode: "{{ 'heat' if aussen_temp <= 18.0 else 'cool' }}"
+  - choose:
+      - conditions:
+          - or:
+              - condition: trigger
+                id: hauptschalter
+              - condition: template
+                value_template: "{{ akt_soc < aus_soc }}"
+        sequence:
+          - action: climate.turn_off
+            target:
+              entity_id:
+                - climate.klima_esszimmer
+                - climate.klima_schlafzimmer
+                - climate.klima_johanna
+                - climate.klima_sophia
+          - action: input_boolean.turn_off
+            target:
+              entity_id:
+                - input_boolean.klima_status
+                - input_boolean.klima_heizen
+                - input_boolean.klima_kuhlen
+          - if:
+              - condition: state
+                entity_id: switch.heizung
+                state: "on"
+            then:
+              - action: switch.turn_off
+                target:
+                  entity_id: switch.heizung
+      - conditions:
+          - condition: state
+            entity_id: input_boolean.klima_automation
+            state: "on"
+          - condition: template
+            value_template: "{{ uberschuss >= 600 }}"
+          - condition: template
+            value_template: "{{ akt_soc <= (aus_soc - 2) }}"
+          - condition: time
+            after: "06:30:00"
+        sequence:
+          - repeat:
+              for_each:
+                - climate: climate.klima_esszimmer
+                  wunsch: input_number.wohn_esszimmer_temp
+                  sensor: sensor.wohnzimmer_temperatur
+                - climate: climate.klima_schlafzimmer
+                  wunsch: input_number.schlafzimmer_temp
+                  sensor: sensor.schlafzimmer_temperatur_2
+                - climate: climate.klima_johanna
+                  wunsch: input_number.johanna_temp
+                  sensor: sensor.johanna_temperatur
+                - climate: climate.klima_sophia
+                  wunsch: input_number.sophia_temp
+                  sensor: sensor.sophia_temperatur
+              sequence:
+                - condition: template
+                  value_template: >
+                    {% set soll_raw = states(repeat.item.wunsch) | float(22) %}
+                    {% set ist = states(repeat.item.sensor) | float(soll_raw) %}
+                    {% set current_mode = state_attr(repeat.item.climate,
+                    'hvac_mode') %} {% set current_temp =
+                    state_attr(repeat.item.climate, 'temperature') | float(0) %}
+                    {% set neu_temp = (soll_raw - 1 if target_mode == 'heat' and
+                    ist >= soll_raw else (soll_raw + 1 if target_mode == 'cool'
+                    and ist <= soll_raw else soll_raw)) %} {{ current_mode !=
+                    target_mode or current_temp != neu_temp }}
+                - action: climate.set_hvac_mode
+                  data:
+                    hvac_mode: "{{ target_mode }}"
+                  target:
+                    entity_id: "{{ repeat.item.climate }}"
+                - action: climate.set_temperature
+                  target:
+                    entity_id: "{{ repeat.item.climate }}"
+                  data:
+                    temperature: >
+                      {% set soll = states(repeat.item.wunsch) | float(22) %} {%
+                      set ist = states(repeat.item.sensor) | float(soll) %} {%
+                      if target_mode == 'heat' %}
+                        {{ soll - 1 if ist >= soll else soll }}
+                      {% elif target_mode == 'cool' %}
+                        {{ soll + 1 if ist <= soll else soll }}
+                      {% else %}
+                        {{ soll }}
+                      {% endif %}
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.klima_status
+mode: restart
