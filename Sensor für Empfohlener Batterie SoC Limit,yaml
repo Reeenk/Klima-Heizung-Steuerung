@@ -1,0 +1,32 @@
+## Empfohlener Batterie SoC Limit
+
+Hier der Helfer/Sensor
+
+
+{% set n1 = states('input_number.nacht_verbrauch_tag_1') | float(0) %}
+{% set n2 = states('input_number.nacht_verbrauch_tag_2') | float(0) %}
+{% set n3 = states('input_number.nacht_verbrauch_tag_3') | float(0) %}
+
+{# Berechnung des Mittelwerts aus den 3 Helfern #}
+{% set verbrauch_avg = (n1 + n2 + n3) / 3 %}
+
+{# Deine BYD Hardware-Daten und Reserven #}
+{% set kapazitaet_kwh = (states('sensor.byd_battery_box_premium_hv_capacity') | float(0)) / 1000 %}
+{% set reserve_fest = states('sensor.byd_battery_box_premium_hv_minimum_reserve') | float(10) %}
+{% set puffer = 10 %}
+
+{# Logik zur Berechnung des Prozentanteils #}
+{% if kapazitaet_kwh > 0 %}
+  {% set nacht_prozent = (verbrauch_avg / kapazitaet_kwh) * 100 %}
+{% else %}
+  {% set nacht_prozent = 0 %}
+{% endif %}
+
+{# Finaler Ziel-SoC mit Begrenzung auf 100% #}
+{% set ziel_soc = reserve_fest + nacht_prozent + puffer %}
+
+{{ 
+  [100, 
+    [reserve_fest, ziel_soc] | max
+  ] | min | round(0)
+}}

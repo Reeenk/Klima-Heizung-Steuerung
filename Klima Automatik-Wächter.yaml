@@ -13,9 +13,9 @@ triggers:
       {% set limit_empfohlen = states('sensor.empfohlener_batterie_soc_limit') |
       float(0) %} {% set limit_manuell =
       states('input_number.klima_akku_entnehmen') | float(0) %} {# Synchron mit
-      V19: Minimum aus beiden, aber mindestens 35% #} {% set aus_soc =
+      V22: Minimum aus beiden, aber mindestens 35% #} {% set aus_soc =
       [([limit_empfohlen, limit_manuell] | min), 35] | max %} {{
-      states('sensor.byd_battery_box_premium_hv_ladezustand') | float(0) <=
+      states('sensor.byd_battery_box_premium_hv_ladezustand') | float(0) <=		# Ladezustand des Speicher
       aus_soc }}
 actions:
   - choose:
@@ -27,7 +27,7 @@ actions:
               - condition: template
                 alias: Prognose ist höher als mein Soll-Wert
                 value_template: >
-                  {{ states('sensor.solcast_pv_forecast_prognose_heute') |
+                  {{ states('sensor.solcast_pv_forecast_prognose_heute') |		# Vorhersage an PV-Prodution Heute
                   float(0) >= 
                      states('input_number.pv_produktion_soll_tag') | float(0) }}
             then:
@@ -50,7 +50,7 @@ actions:
           - action: input_boolean.turn_off
             target:
               entity_id: input_boolean.klima_automation
-          - action: notify.mobile_app_sven_iphone_15
+          - action: notify.mobile_app_Handy			# Sensor für Handy
             data:
               title: Klima-Wächter NEA
               message: >-
