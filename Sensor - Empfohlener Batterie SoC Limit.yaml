@@ -1,0 +1,15 @@
+Empfohlener Batterie SoC Limit
+
+
+{% set kap_wh =
+states('sensor.byd_battery_box_premium_hv_capacity') | float(7680) %} 
+{% set soh = states('sensor.byd_state_of_health') | float(100) / 100 %} {% set 
+res_pct = states('sensor.byd_battery_box_premium_hv_minimum_reserve') | float(7) %} 
+{% set kap_effektiv_wh = kap_wh * soh %}  
+{% set puffer_pct = states('input_number.klima_zusatzpuffer_fur_speicher') | float(5) %}  
+{% set n1 = states('input_number.nacht_verbrauch_tag_1') | float(0) %} 
+{% set n2 = states('input_number.nacht_verbrauch_tag_2') | float(0) %} 
+{% set n3 = states('input_number.nacht_verbrauch_tag_3') | float(0) %} 
+{% set nacht_kwh = (n1 + n2 + n3) / 3 %}  
+{% set nacht_pct = ((nacht_kwh * 1000) / kap_effektiv_wh) * 100 %} 
+{{ [100, (res_pct + puffer_pct + nacht_pct)] | min | round(0) }}

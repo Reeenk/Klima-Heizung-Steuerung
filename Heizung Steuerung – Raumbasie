@@ -1,0 +1,83 @@
+alias: Heizung Steuerung – Raumbasiert mit Status-Check
+description: Schaltet nur, wenn der Zielzustand noch nicht erreicht ist.
+triggers:
+  - trigger: numeric_state
+    entity_id: sensor.haus_temperatur_durchschnitt
+    above: 22.5
+    id: zu_warm
+  - trigger: homeassistant
+    event: start
+    id: reboot
+  - trigger: state
+    entity_id: input_boolean.temp_steuerung
+    to: "on"
+    id: reboot
+  - trigger: numeric_state
+    entity_id:
+      - sensor.wohnzimmer_temperatur
+      - sensor.johanna_temperatur
+      - sensor.schlafzimmer_temperatur_2
+      - sensor.sophia_temperatur
+    below: 20
+    id: zu_kalt
+conditions:
+  - condition: state
+    entity_id: input_boolean.temp_steuerung
+    state: "on"
+  - condition: state
+    entity_id: input_boolean.klima_status
+    state: "off"
+actions:
+  - if:
+      - condition: trigger
+        id: reboot
+    then:
+      - delay: "00:03:00"
+  - choose:
+      - conditions:
+          - or:
+              - condition: trigger
+                id: zu_warm
+              - condition: numeric_state
+                entity_id: sensor.haus_temperatur_durchschnitt
+                above: 22.5
+          - condition: state
+            entity_id: switch.heizung
+            state: "on"
+        sequence:
+          - action: switch.turn_off
+            target:
+              entity_id: switch.heizung
+          - action: notify.mobile_app_sven_iphone_15
+            data:
+              title: Heizung
+              message: >-
+                Heizung AUS (Durchschnitt {{
+                states('sensor.haus_temperatur_durchschnitt') }} °C) 🧊
+      - conditions:
+          - or:
+              - condition: trigger
+                id: zu_kalt
+              - condition: numeric_state
+                entity_id: sensor.wohnzimmer_temperatur
+                below: 19.5
+              - condition: numeric_state
+                entity_id: sensor.johanna_temperatur
+                below: 19.5
+              - condition: numeric_state
+                entity_id: sensor.schlafzimmer_temperatur_2
+                below: 19.5
+              - condition: numeric_state
+                entity_id: sensor.sophia_temperatur
+                below: 19.5
+          - condition: state
+            entity_id: switch.heizung
+            state: "off"
+        sequence:
+          - action: switch.turn_on
+            target:
+              entity_id: switch.heizung
+          - action: notify.mobile_app_sven_iphone_15
+            data:
+              title: Heizung
+              message: Heizung AN (Raum-Check aktiv) 🔥

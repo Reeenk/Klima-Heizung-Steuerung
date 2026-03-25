@@ -1,0 +1,68 @@
+Klima Istzustand:
+
+
+
+{% set hausmodus = states('input_select.hausmodus') %}
+{% set klima_auto = is_state('input_boolean.klima_automation', 'on') %}
+{% set klima_status = is_state('input_boolean.klima_status', 'on') %}
+{% set akt_soc = states('sensor.byd_battery_box_premium_hv_ladezustand') | float(0) %}
+{% set monat = now().month %}
+{% set ponr = states('sensor.soc_point_of_no_return') | float(55) %}
+{% set im_winter = monat in [10, 11, 12, 1, 2] %}
+{% set time_ok = now().strftime('%H:%M:%S') >= '06:30:00' %}
+{% set pv = states('sensor.pv_uberschuss_real') | float(0) %}
+
+{# --- 1. BASIS-CHECKS --- #}
+{% if not klima_auto %}
+  ⚪ Automatik Aus
+{% elif not time_ok %}
+  💤 Ruhezeit (bis 06:30)
+
+{# --- 2. PRIORITY: PARTY MODUS --- #}
+{% elif hausmodus == 'Party' %}
+  {% if akt_soc < ponr %}
+    ⚠️ Party: Akku leer ({{ akt_soc }}%)
+  {% else %}
+    🥳 Party-Kühlung aktiv
+  {% endif %}
+
+{# --- 3. AKKU-LIMIT (Point of no Return) --- #}
+{% elif akt_soc < ponr and not klima_status %}
+  🪫 Akku-Limit ({{ akt_soc }}% < {{ ponr }}%)
+
+{# --- 4. KLIMA LÄUFT (BETRIEB ODER HYSTERESE) --- #}
+{% elif klima_status %}
+  {% set last_ch = states.input_boolean.klima_status.last_changed %}
+  {# Prüfen auf Entfeuchtungs-Phase (30 Min) #}
+  {% set start_phase = (now() - last_ch).total_seconds() < 1800 %}
+  {% set hum_max = [
+    states('sensor.sophia_luftfeuchtigkeit')|float(0), 
+    states('sensor.johanna_luftfeuchtigkeit')|float(0),
+    states('sensor.wohnzimmer_luftfeuchtigkeit')|float(0)
+  ] | max %}
+  
+  {% if hum_max > 58 and start_phase %}
+    💧 Entfeuchten ({{ hum_max }}%)
+  {% else %}
+    {% set mode = 'Heizen' if is_state('input_boolean.klima_heizen','on') else 'Kühlen' %}
+    ✅ Klima {{ mode }} ({{ akt_soc }}%)
+  {% endif %}
+
+{# --- 5. WARTE-BEDINGUNGEN (Start-Check) --- #}
+{% else %}
+  {% if im_winter %}
+    {% if akt_soc < 80 %}  
+    {# Angepasst auf Automation Wert 80 #}
+      ⏳ Winter-Laden ({{ akt_soc }}%/80%)
+    {% else %}
+      🚀 Startbereit (Winter)
+    {% endif %}
+  {% else %}
+    {% if akt_soc < 45 or pv < 600 %} 
+    {# Angepasst auf Automation Wert 600 #}
+      ☀️ PV/Akku zu schwach ({{ pv }}W / {{ akt_soc }}%)
+    {% else %}
+      🚀 Startbereit...
+    {% endif %}
+  {% endif %}
+{% endif %}

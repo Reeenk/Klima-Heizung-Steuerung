@@ -1,0 +1,11 @@
+Mittelwert für den Akku berechnen für die Nacht
+
+
+{% set n1 = states('input_number.nacht_verbrauch_tag_1') | float(0) %}
+{% set n2 = states('input_number.nacht_verbrauch_tag_2') | float(0) %}
+{% set n3 = states('input_number.nacht_verbrauch_tag_3') | float(0) %}
+
+{# Berechnung des Mittelwerts #}
+{% set verbrauch_avg = (n1 + n2 + n3) / 3 %}
+
+{{ verbrauch_avg | round(2) }}

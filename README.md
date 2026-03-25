@@ -1,6 +1,6 @@
 # Klima-Heizung-Steuerung
 
- Dieses Projekt optimiert mein Heiz- und Kühlverhalten meiner Heinzung mit zusammen spiel meiner Klimaanlage,
+ Dieses Projekt optimiert mein Heiz- und Kühlverhalten meiner Heizung mit zusammen spiel meiner Klimaanlage,
  mit Home Assistant.
 
 ## Hardware-Kontext
@@ -32,8 +32,7 @@ Hier findest du meine 5 Kern-Automatisierungen:
 Prüft alle 5 Minuten, ob die Werte für den Betrieb erfüllt sind:
 
 * **Einschalten:**
-    * Überschuss über 600 Watt
-    * Akku muss über, Sommer 60 %, Winter 80% geladen sein
+    * Akku muss über, Sommer 45 %, Winter 80% geladen sein + Überschuss über 600 Watt
     * Schalter "Klima Automation" muss auf ON stehen
     * Außentemperatur entscheidet über "Heizen" oder "Kühlen"
     * Klima Geräte werden nach Wunsch Temperatur eingestellt
@@ -45,7 +44,7 @@ Prüft alle 5 Minuten, ob die Werte für den Betrieb erfüllt sind:
 
 * **Ausschalten:**
     * Wenn Schalter "Klima Automation" auf OFF geht
-    * Wenn Akku unter X % fällt
+    * Wenn Akku unter X % fällt und Überschuss weniger wie 500 W
 
 ### 3. Heizung – Sicherheits-Check bei Neustart
 
@@ -55,17 +54,19 @@ Prüft alle 5 Minuten, ob die Werte für den Betrieb erfüllt sind:
 
 ### 4. Heizung – Temperatur Steuerung
 
-
       * Die verschiedene Räume werden nach Ihrer Temperatur Abgefragt
-        Wenn in einem Raum die Temperatur für 5 Minuten unter 20,5°C fällt, wird die Heizung eingeschalten.
-      * Für das Ausschalten der Heizung hab ich alle Temperaturen Zusammen gefasst und rechnen mir die Durschnittstemperatur
-        Wenn dies über 22,5°C geht, wird die Heizung deaktiviert.
+        Wenn in einem Raum die Temperatur unter 19,5°C fällt, wird die Heizung eingeschalten.
+      * Für das Ausschalten der Heizung hab ich alle Temperaturen Zusammen gefasst und rechnen mir die Durchschnittstemperatur
+        Wenn dies über 22,5°C geht, wird die Heizung ausgeschalten.
 
-## 5. Berechnung für den Speicher für SOC Wert, die Brechnung geht von den Letzten 3 Tagen aus, mit 10% Sicherheit
+## 5. Berechnung für den Speicher für SOC Wert, die Berechnung geht von den Letzten 3 Tagen aus, mit 10% Sicherheit
 
-Wenn in einem Raum die Temperatur für 5 Minuten unter 20,5°C fällt, wird die Heizung eingeschaltet. Bei einer Durchschnittstemperatur über 22,5°C wird die Heizung deaktiviert.
 
 
 ## Dashboard Ansicht
 
 ![Klima-Steuerung Dashboard](dashboard_anonym.png)
+
+![Speicher Bedarf Dashboard](speicher_bedarf.png)
+
+![Klima Dashboard](dasboard_klima.png)

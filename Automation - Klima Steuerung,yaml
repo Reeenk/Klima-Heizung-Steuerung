@@ -1,0 +1,126 @@
+alias: Automation - Klima Steuerung
+description: >-
+  PV-gesteuerte Klima-Automation. Der Master-Schalter (klima_automation) 
+  steuert die generelle Freigabe.
+triggers:
+  - trigger: time_pattern
+    minutes: /5
+  - trigger: state
+    entity_id: sensor.byd_battery_box_premium_hv_ladezustand
+  - trigger: state
+    entity_id: input_boolean.klima_automation
+    to: "off"
+    id: hauptschalter
+actions:
+  - variables:
+      akt_soc: "{{ states('sensor.byd_battery_box_premium_hv_ladezustand') | float(0) }}"
+      pv_uberschuss: "{{ states('sensor.pv_uberschuss_real') | float(0) }}"
+      ponr: "{{ states('sensor.soc_point_of_no_return') | float(0) }}"
+      schwelle: "{{ states('input_number.schwellenwert_fur_klima') | float(18) }}"
+      akt_monat: "{{ now().month }}"
+      master_aktiv: "{{ is_state('input_boolean.klima_automation', 'on') }}"
+      start_bereit: |
+        {% if akt_monat in [10, 11, 12, 1, 2] %}
+          {{ akt_soc >= 80 }}
+        {% else %}
+          {{ akt_soc >= 45 and pv_uberschuss >= 600 }}
+        {% endif %}
+      target_mode: >-
+        {% set temp = states('sensor.schuppen_aussentemperatur') | float(15) %}
+        {{ 'heat' if temp <= schwelle else 'cool' }}
+  - choose:
+      - conditions:
+          - or:
+              - condition: trigger
+                id: hauptschalter
+              - condition: template
+                alias: "Sicherheits-Aus: Master OFF oder Akku leer"
+                value_template: >-
+                  {{ not master_aktiv or (akt_soc < ponr and pv_uberschuss <=
+                  500) }}
+        sequence:
+          - action: climate.turn_off
+            target:
+              entity_id:
+                - climate.klima_esszimmer
+                - climate.klima_schlafzimmer
+                - climate.klima_johanna
+                - climate.klima_sophia
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.klima_status
+        alias: "@ Klima OFF"
+      - conditions:
+          - condition: template
+            alias: Master ist ON und Startbedingungen erfüllt
+            value_template: >
+              {{ master_aktiv and (now() >= now().replace(hour=6, minute=30,
+              second=0)) and 
+                 (start_bereit or is_state('input_boolean.klima_status', 'on')) }}
+        sequence:
+          - repeat:
+              for_each:
+                - climate: climate.klima_esszimmer
+                  wunsch: input_number.wohn_esszimmer_temp
+                  sensor: sensor.wohnzimmer_temperatur
+                - climate: climate.klima_schlafzimmer
+                  wunsch: input_number.schlafzimmer_temp
+                  sensor: sensor.schlafzimmer_temperatur_2
+                - climate: climate.klima_johanna
+                  wunsch: input_number.johanna_temp
+                  sensor: sensor.johanna_temperatur
+                - climate: climate.klima_sophia
+                  wunsch: input_number.sophia_temp
+                  sensor: sensor.sophia_temperatur
+              sequence:
+                - variables:
+                    soll: "{{ states(repeat.item.wunsch) | float(22) }}"
+                    ist: "{{ states(repeat.item.sensor) | float(soll) }}"
+                    geraet_status: "{{ states(repeat.item.climate) }}"
+                    auto_start_notig: |-
+                      {% if target_mode == 'heat' %}
+                        {{ ist < 19.5 }}
+                      {% else %}
+                        {{ ist > (soll + 4) }}
+                      {% endif %}
+                - if:
+                    - condition: template
+                      value_template: "{{ geraet_status != 'off' or auto_start_notig }}"
+                  then:
+                    - action: input_boolean.turn_on
+                      target:
+                        entity_id: input_boolean.klima_status
+                    - action: climate.set_hvac_mode
+                      data:
+                        hvac_mode: >-
+                          {{ 'dry' if
+                          is_state('binary_sensor.klima_entfeuchtungsbedarf',
+                          'on') else target_mode }}
+                      target:
+                        entity_id: "{{ repeat.item.climate }}"
+                    - if:
+                        - condition: template
+                          value_template: >-
+                            {{ not
+                            is_state('binary_sensor.klima_entfeuchtungsbedarf',
+                            'on') }}
+                      then:
+                        - action: climate.set_temperature
+                          data:
+                            temperature: >
+                              {% if target_mode == 'heat' and ist >= soll %} {{
+                              soll - 1 }} {% elif target_mode == 'cool' and ist
+                              <= soll %} {{ soll + 1 }} {% else %} {{ soll }} {%
+                              endif %}
+                          target:
+                            entity_id: "{{ repeat.item.climate }}"
+                    - if:
+                        - condition: state
+                          entity_id: switch.heizung
+                          state: "on"
+                      then:
+                        - action: switch.turn_off
+                          target:
+                            entity_id: switch.heizung
+        alias: "@ Klima ON"
+mode: restart
