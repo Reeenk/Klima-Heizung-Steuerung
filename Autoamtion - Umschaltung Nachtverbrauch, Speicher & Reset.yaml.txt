@@ -1,0 +1,73 @@
+alias: Umschaltung Nachtverbrauch, Speicher & Reset
+description: Speichert die letzten 3 Nächte in Helfern und setzt dann zurück
+triggers:
+  - event: sunset
+    offset: "-01:00:00"
+    trigger: sun
+    id: nacht_start
+  - event: sunrise
+    offset: "+01:00:00"
+    trigger: sun
+    id: nacht_ende
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: nacht_start
+        sequence:
+          - data:
+              option: Nacht
+            action: select.select_option
+            target:
+              entity_id: select.verbrauch_messung_v3
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 5
+              milliseconds: 0
+          - action: utility_meter.calibrate
+            target:
+              entity_id: sensor.verbrauch_messung_v3_tag
+            data:
+              value: 0
+      - conditions:
+          - condition: trigger
+            id: nacht_ende
+        sequence:
+          - target:
+              entity_id: select.verbrauch_messung_v3
+            data:
+              option: Tag
+            action: select.select_option
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 5
+              milliseconds: 0
+          - action: input_number.set_value
+            target:
+              entity_id:
+                - input_number.nacht_verbrauch_tag_3
+            data:
+              value: "{{ states('input_number.nacht_verbrauch_tag_2') | float(0) }}"
+          - action: input_number.set_value
+            target:
+              entity_id: input_number.nacht_verbrauch_tag_2
+            data:
+              value: "{{ states('input_number.nacht_verbrauch_tag_1') | float(0) }}"
+          - action: input_number.set_value
+            target:
+              entity_id:
+                - input_number.nacht_verbrauch_tag_1
+            data:
+              value: "{{ states('sensor.verbrauch_messung_v3_nacht') | float(0) }}"
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 5
+              milliseconds: 0
+          - action: utility_meter.calibrate
+            target:
+              entity_id: sensor.verbrauch_messung_v3_nacht
+            data:
+              value: "0"
