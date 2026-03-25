@@ -46,6 +46,9 @@ Prüft alle 5 Minuten, ob die Werte für den Betrieb erfüllt sind:
     * Wenn Schalter "Klima Automation" auf OFF geht
     * Wenn Akku unter X % fällt und Überschuss weniger wie 500 W
 
+![Klima Dashboard](dasboard_klima.png)
+
+
 ### 3. Heizung – Sicherheits-Check bei Neustart
 
      * Prüft bei Neustart von HA (oder periodisch), 
@@ -59,14 +62,7 @@ Prüft alle 5 Minuten, ob die Werte für den Betrieb erfüllt sind:
       * Für das Ausschalten der Heizung hab ich alle Temperaturen Zusammen gefasst und rechnen mir die Durchschnittstemperatur
         Wenn dies über 22,5°C geht, wird die Heizung ausgeschalten.
 
-## 5. Berechnung für den Speicher für SOC Wert, die Berechnung geht von den Letzten 3 Tagen aus, mit 10% Sicherheit
-
-
-
-## Dashboard Ansicht
-
-![Klima-Steuerung Dashboard](dashboard_anonym.png)
+### 5. Berechnung für den Speicher für SOC Wert, die Berechnung geht von den Letzten 3 Tagen aus, mit 10% Sicherheit
 
 ![Speicher Bedarf Dashboard](speicher_bedarf.png)
 
-![Klima Dashboard](dasboard_klima.png)
